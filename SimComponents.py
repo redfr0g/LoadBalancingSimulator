@@ -68,7 +68,7 @@ class PacketGenerator(object):
         self.id = id
         self.env = env
         self.adist = adist
-        self.sdist = sdist
+        self.sdist = sdist				#self.size = size
         self.initial_delay = initial_delay
         self.finish = finish
         self.out = None
@@ -84,7 +84,7 @@ class PacketGenerator(object):
             # wait for next transmission
             yield self.env.timeout(self.adist())
             self.packets_sent += 1
-            p = Packet(self.env.now, self.sdist(), self.packets_sent, src=self.id, flow_id=self.flow_id)
+            p = Packet(self.env.now, self.sdist(), self.packets_sent, src=self.id, flow_id=self.flow_id)			#TODO const pkt size
             self.out.put(p)
 
 
@@ -118,7 +118,7 @@ class PacketSink(object):
         self.rec_arrivals = rec_arrivals
         self.rec_flows = rec_flows
         self.absolute_arrivals = absolute_arrivals
-        self.waits = []
+        self.waits = []											#TODO Use in service list check
         self.arrivals = []
         self.sizes = []
         self.flows = []
@@ -127,7 +127,8 @@ class PacketSink(object):
         self.bytes_rec = 0
         self.selector = selector
         self.last_arrival = 0.0
-
+																#TODO Add service list and service rate
+																#TODO Add function that checks time and outputs up to date service list
     def put(self, pkt):
         if not self.selector or self.selector(pkt):
             now = self.env.now

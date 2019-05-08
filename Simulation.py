@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     mean_pkt_size = 1000.0  # in bytes
     adist1 = functools.partial(random.expovariate, 2.0)
-    sdist = functools.partial(random.expovariate, 1.0/mean_pkt_size)
+    sdist = functools.partial(random.expovariate, 1.0/mean_pkt_size)			#TODO Change to constant packet size                                    (Aga)
     samp_dist = functools.partial(random.expovariate, 0.50)
 
     # Create the SimPy environment. This is the thing that runs the simulation.
@@ -41,7 +41,9 @@ if __name__ == '__main__':
     endpoints_weigths = []      #weights added randomly from 1-10
 
     for i in range(0, endpoints_max):
-        endpoints_list.append(PacketSink(env,random.randint(1,10), debug=False, rec_arrivals=True, rec_sizes=True))
+        endpoints_list.append(PacketSink(env,random.randint(1,10), debug=False, rec_arrivals=True, rec_sizes=True))		
+																				#TODO Add to packetsink service rate and service list and packets loss  (Aga)
+																				#TODO Calculate business from servicing time and total time				
         endpoints_weigths.append(endpoints_list[i].weight)
 
 
@@ -49,6 +51,8 @@ if __name__ == '__main__':
     lb1 = WeightedRoundRobin(env, endpoints_max,endpoints_weigths,mean_pkt_size)
     lb2 = RoundRobin(env,endpoints_max)
     lb3 = LeastConnection(env,endpoints_max, endpoints_list)
+																				#TODO Add least load algorithm which checks and updates service lists in all servers when gets its packets
+																				#TODO Add total random algorithm to comarison in results
 
     balancer = lb3
 
