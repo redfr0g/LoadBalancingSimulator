@@ -32,6 +32,7 @@ class Packet(object):
         flow_id : int
             small integer that can be used to identify a flow
     """
+
     def __init__(self, time, size, id, src="a", dst="z", flow_id=0):
         self.time = time
         self.size = size
@@ -41,7 +42,7 @@ class Packet(object):
         self.flow_id = flow_id
 
     def __repr__(self):
-        return "id: {}, src: {}, time: {}, size: {}".\
+        return "id: {}, src: {}, time: {}, size: {}". \
             format(self.id, self.src, float(self.time), self.size)
 
 
@@ -64,11 +65,12 @@ class PacketGenerator(object):
 
 
     """
-    def __init__(self, env, id,  adist, sdist, initial_delay=0, finish=float("inf"), flow_id=0):
+
+    def __init__(self, env, id, adist, sdist, initial_delay=0, finish=float("inf"), flow_id=0):
         self.id = id
         self.env = env
         self.adist = adist
-        self.sdist = sdist				#self.size = size
+        self.sdist = sdist  # self.size = size
         self.initial_delay = initial_delay
         self.finish = finish
         self.out = None
@@ -84,7 +86,8 @@ class PacketGenerator(object):
             # wait for next transmission
             yield self.env.timeout(self.adist())
             self.packets_sent += 1
-            p = Packet(self.env.now, self.sdist(), self.packets_sent, src=self.id, flow_id=self.flow_id)			#TODO const pkt size
+            p = Packet(self.env.now, self.sdist(), self.packets_sent, src=self.id,
+                       flow_id=self.flow_id)
             self.out.put(p)
 
 
@@ -109,7 +112,9 @@ class PacketSink(object):
             used for selective statistics. Default none.
 
     """
-    def __init__(self, env, weight=0,rec_arrivals=False, absolute_arrivals=False, rec_waits=True, debug=False, selector=None, rec_sizes=False, rec_flows=False):
+
+    def __init__(self, env, weight=0, rec_arrivals=False, absolute_arrivals=False, rec_waits=True, debug=False,
+                 selector=None, rec_sizes=False, rec_flows=False):
         self.store = simpy.Store(env)
         self.env = env
         self.weight = weight
@@ -118,7 +123,7 @@ class PacketSink(object):
         self.rec_arrivals = rec_arrivals
         self.rec_flows = rec_flows
         self.absolute_arrivals = absolute_arrivals
-        self.waits = []											#TODO Use in service list check
+        self.waits = []                                                                                                     # TODO Use in service list check
         self.arrivals = []
         self.sizes = []
         self.flows = []
@@ -127,8 +132,9 @@ class PacketSink(object):
         self.bytes_rec = 0
         self.selector = selector
         self.last_arrival = 0.0
-																#TODO Add service list and service rate
-																#TODO Add function that checks time and outputs up to date service list
+
+                                                                                                                            # TODO Add service list and service rate
+                                                                                                                            # TODO Add function that checks time and outputs up to date service list
     def put(self, pkt):
         if not self.selector or self.selector(pkt):
             now = self.env.now
@@ -168,6 +174,7 @@ class SwitchPort(object):
             queue limit will be based on packets.
 
     """
+
     def __init__(self, env, rate, qlimit=None, limit_bytes=True, debug=False):
         self.store = simpy.Store(env)
         self.rate = rate
@@ -187,7 +194,7 @@ class SwitchPort(object):
             msg = (yield self.store.get())
             self.busy = 1
             self.byte_size -= msg.size
-            yield self.env.timeout(msg.size*8.0/self.rate)
+            yield self.env.timeout(msg.size * 8.0 / self.rate)
             self.out.put(msg)
             self.busy = 0
             if self.debug:
@@ -203,7 +210,7 @@ class SwitchPort(object):
         if self.limit_bytes and tmp_byte_count >= self.qlimit:
             self.packets_drop += 1
             return
-        elif not self.limit_bytes and len(self.store.items) >= self.qlimit-1:
+        elif not self.limit_bytes and len(self.store.items) >= self.qlimit - 1:
             self.packets_drop += 1
         else:
             self.byte_size = tmp_byte_count
@@ -225,6 +232,7 @@ class PortMonitor(object):
             a no parameter function that returns the successive inter-arrival times of the
             packets
     """
+
     def __init__(self, env, port, dist, count_bytes=False):
         self.port = port
         self.env = env
@@ -256,11 +264,12 @@ class RandomBrancher(object):
         probs : List
             list of probabilities for the corresponding output ports
     """
+
     def __init__(self, env, probs):
         self.env = env
 
         self.probs = probs
-        self.ranges = [sum(probs[0:n+1]) for n in range(len(probs))]  # Partial sums of probs
+        self.ranges = [sum(probs[0:n + 1]) for n in range(len(probs))]  # Partial sums of probs
         if self.ranges[-1] - 1.0 > 1.0e-6:
             raise Exception("Probabilities must sum to 1.0")
         self.n_ports = len(self.probs)
@@ -279,6 +288,7 @@ class RandomBrancher(object):
 
 """<---------------------LOAD BALANCING ALGORITHMS START------------------------->"""
 
+
 class RoundRobin(object):
     "Switches by all of the outputs with a cycle"
 
@@ -290,7 +300,6 @@ class RoundRobin(object):
         self.packets_rec = 0
         self.prev_port = 0
 
-
     def put(self, pkt):
 
         self.packets_rec += 1
@@ -298,7 +307,7 @@ class RoundRobin(object):
         if self.prev_port < self.n_ports:
             if self.outs[self.prev_port]:
                 self.outs[self.prev_port].put(pkt)
-                #print("Packet sent to output {}".format(self.prev_port))
+                # print("Packet sent to output {}".format(self.prev_port))
                 self.prev_port = self.prev_port + 1
                 return
 
@@ -306,16 +315,15 @@ class RoundRobin(object):
             self.prev_port = 0
             if self.outs[self.prev_port]:
                 self.outs[self.prev_port].put(pkt)
-                #print("Packet sent to output {}".format(self.prev_port))
+                # print("Packet sent to output {}".format(self.prev_port))
                 self.prev_port = self.prev_port + 1
                 return
+
 
 class WeightedRoundRobin(object):
     "Switches the packtes by the weights assigned to the outputs"
 
-
-
-    def __init__(self,env,ports,weights,mean):
+    def __init__(self, env, ports, weights, mean):
 
         self.env = env
         self.n_ports = ports
@@ -331,17 +339,16 @@ class WeightedRoundRobin(object):
 
         self.packets_to_be_served = [int(round(value / self.min_normalized_weight)) for value in self.normalized_weight]
 
-        self.serving_list = [v for v in self.packets_to_be_served]          #assing values not pointers
+        self.serving_list = [v for v in self.packets_to_be_served]  # assing values not pointers
         self.serving_port = 0
-        #print(self.packets_to_be_served)
+        # print(self.packets_to_be_served)
 
     def put(self, pkt):
 
-
         self.packets_rec += 1
-        #print(self.serving_port)
-        #print(self.serving_list)
-        #print(self.packets_to_be_served)
+        # print(self.serving_port)
+        # print(self.serving_list)
+        # print(self.packets_to_be_served)
 
         if all([v == 0.0 for v in self.serving_list]):
             self.serving_list = [v for v in self.packets_to_be_served]
@@ -356,6 +363,7 @@ class WeightedRoundRobin(object):
                 self.serving_list[self.serving_port] -= 1
                 return
 
+
 class LeastConnection(object):
     """Measures all active connections to the servers and distributes
     the packets to the least occupied endpoint"""
@@ -369,11 +377,11 @@ class LeastConnection(object):
         self.packets_rec = 0
         self.prev_port = 0
 
-    def put(self,pkt):
+    def put(self, pkt):
 
         self.packets_rec += 1
 
-        #round robin for some time to even the loads
+        # round robin for some time to even the loads
         if self.packets_rec < 100:
             if self.prev_port < self.n_ports:
                 if self.outs[self.prev_port]:
@@ -394,24 +402,45 @@ class LeastConnection(object):
             loads = {}
             for endpoint in self.endpoints:
                 try:
-                    loads[self.endpoints.index(endpoint)] = sum(endpoint.sizes)/sum(endpoint.arrivals)
+                    loads[self.endpoints.index(endpoint)] = sum(endpoint.sizes) / sum(endpoint.arrivals)
                 except ZeroDivisionError:
-                    #in case no packets were sent before set load to 0
+                    # in case no packets were sent before set load to 0
                     loads[self.endpoints.index(endpoint)] = 0
 
-            #sort by the server load
+            # sort by the server load
             sorted_loads = sorted(loads.items(), key=itemgetter(1))
 
-            #send packet to server with least load
+            # send packet to server with least load
             if self.outs[sorted_loads[0][0]]:
                 self.outs[sorted_loads[0][0]].put(pkt)
                 return
+
+
+class RandomBalancer(object):
+    '''Total random algorithm for a comparison with other LBL algorithms.'''
+
+    def __init__(self, env, ports):
+        self.env = env
+
+        self.n_ports = ports
+        self.outs = [None for i in range(self.n_ports)]
+        self.packets_rec = 0
+
+    def put(self, pkt):
+        self.packets_rec += 1
+        self.port = random.randint(0, self.n_ports - 1)
+
+        if self.outs[self.port]:
+            self.outs[self.port].put(pkt)
+
+            return
+
 
 """<---------------------LOAD BALANCING ALGORITHMS END------------------------->"""
 
 
 class FlowDemux(object):
-        """ A demultiplexing element that splits packet streams by flow_id.
+    """ A demultiplexing element that splits packet streams by flow_id.
 
         Contains a list of output ports of the same length as the probability list
         in the constructor.  Use these to connect to other network elements.
@@ -421,19 +450,21 @@ class FlowDemux(object):
         outs : List
             list of probabilities for the corresponding output ports
     """
-        def __init__(self, outs=None, default=None):
-            self.outs = outs
-            self.default = default
-            self.packets_rec = 0
 
-        def put(self, pkt):
-            self.packets_rec += 1
-            flow_id = pkt.flow_id
-            if flow_id < len(self.outs):
-                self.outs[flow_id].put(pkt)
-            else:
-                if self.default:
-                    self.default.put(pkt)
+    def __init__(self, outs=None, default=None):
+        self.outs = outs
+        self.default = default
+        self.packets_rec = 0
+
+    def put(self, pkt):
+        self.packets_rec += 1
+        flow_id = pkt.flow_id
+        if flow_id < len(self.outs):
+            self.outs[flow_id].put(pkt)
+        else:
+            if self.default:
+                self.default.put(pkt)
+
 
 class TrTCM(object):
     """ A Two rate three color marker. Uses the flow_id packet field to
@@ -447,6 +478,7 @@ class TrTCM(object):
         cir : Committed Information Rate in units of bits (time part maybe scaled)
         cbs : Committed Burst Size in bytes
     """
+
     def __init__(self, env, pir, pbs, cir, cbs):
         self.env = env
         self.out = None
@@ -462,10 +494,10 @@ class TrTCM(object):
         time_inc = self.env.now - self.last_time
         self.last_time = self.env.now
         # Add bytes to the buckets
-        self.pbucket += self.pir*time_inc/8.0  # rate in bits, bucket in bytes
+        self.pbucket += self.pir * time_inc / 8.0  # rate in bits, bucket in bytes
         if self.pbucket > self.pbs:
             self.pbucket = self.pbs
-        self.cbucket += self.cir*time_inc/8.0  # rate in bits, bucket in bytes
+        self.cbucket += self.cir * time_inc / 8.0  # rate in bits, bucket in bytes
         if self.cbucket > self.cbs:
             self.cbucket = self.cbs
         # Check marking criteria and mark
@@ -481,12 +513,14 @@ class TrTCM(object):
         # Send marked packet on its way
         self.out.put(pkt)
 
+
 class SnoopSplitter(object):
     """ A snoop port like splitter. Sends the original packet out port 1
         and sends a copy of the packet out port 2.
 
         You need to set the values of out1 and out2.
     """
+
     def __init__(self):
         self.out1 = None
         self.out2 = None
@@ -497,6 +531,7 @@ class SnoopSplitter(object):
             self.out1.put(pkt)
         if self.out2:
             self.out2.put(pkt2)
+
 
 """
     Trying to implement a stamped/ordered version of the Simpy Store class.
@@ -514,6 +549,7 @@ class StampedStorePut(base.Put):
         The item must be a tuple (stamp, contents) where the stamp is used to sort
         the content in the StampedStore.
     """
+
     def __init__(self, resource, item):
         self.item = item
         """The item to put into the store."""
@@ -539,13 +575,14 @@ class StampedStore(base.BaseResource):
     raised if the value is negative.
 
     """
+
     def __init__(self, env, capacity=float('inf')):
         super(StampedStore, self).__init__(env, capacity=float('inf'))
         if capacity <= 0:
             raise ValueError('"capacity" must be > 0.')
         self._capacity = capacity
         self.items = []  # we are keeping items sorted by stamp
-        self.event_count = 0 # Used to break ties with python heap implementation
+        self.event_count = 0  # Used to break ties with python heap implementation
         # See: https://docs.python.org/3/library/heapq.html?highlight=heappush#priority-queue-implementation-notes
         """List of the items within the store."""
 
@@ -563,7 +600,7 @@ class StampedStore(base.BaseResource):
     # We assume the item is a tuple: (stamp, packet). The stamp is used to
     # sort the packet in the heap.
     def _do_put(self, event):
-        self.event_count += 1 # Needed this to break heap ties
+        self.event_count += 1  # Needed this to break heap ties
         if len(self.items) < self._capacity:
             heappush(self.items, [event.item[0], self.event_count, event.item[1]])
             event.succeed()
@@ -573,6 +610,7 @@ class StampedStore(base.BaseResource):
     def _do_get(self, event):
         if self.items:
             event.succeed(heappop(self.items)[2])
+
 
 """
     A Set of components to enable simulation of various networking QoS scenarios.
@@ -600,6 +638,7 @@ class ShaperTokenBucket(object):
             the peak sending rate of the buffer (quickest time two packets could be sent)
 
     """
+
     def __init__(self, env, rate, b_size, peak=None, debug=False):
         self.store = simpy.Store(env)
         self.rate = rate
@@ -621,13 +660,13 @@ class ShaperTokenBucket(object):
             msg = (yield self.store.get())
             now = self.env.now
             #  Add tokens to bucket based on current time
-            self.current_bucket = min(self.b_size, self.current_bucket + self.rate*(now-self.update_time)/8.0)
+            self.current_bucket = min(self.b_size, self.current_bucket + self.rate * (now - self.update_time) / 8.0)
             self.update_time = now
             #  Check if there are enough tokens to allow packet to be sent
             #  If not we will wait to accumulate enough tokens to let this packet pass
             #  regardless of the bucket size.
             if msg.size > self.current_bucket:  # Need to wait for bucket to fill before sending
-                yield self.env.timeout((msg.size - self.current_bucket)*8.0/self.rate)
+                yield self.env.timeout((msg.size - self.current_bucket) * 8.0 / self.rate)
                 self.current_bucket = 0.0
                 self.update_time = self.env.now
             else:
@@ -637,7 +676,7 @@ class ShaperTokenBucket(object):
             if not self.peak:  # Infinite peak rate
                 self.out.put(msg)
             else:
-                yield self.env.timeout(msg.size*8.0/self.peak)
+                yield self.env.timeout(msg.size * 8.0 / self.peak)
                 self.out.put(msg)
             self.packets_sent += 1
             if self.debug:
@@ -665,6 +704,7 @@ class VirtualClockServer(object):
             flow id to vticks, i.e., flow_id = 0 corresponds to vticks[0], etc... We assume that the vticks are
             the inverse of the desired rates for the flows in bits per second.
     """
+
     def __init__(self, env, rate, vticks, debug=False):
         self.env = env
         self.rate = rate
@@ -681,7 +721,7 @@ class VirtualClockServer(object):
         while True:
             msg = (yield self.store.get())
             # Send message
-            yield self.env.timeout(msg.size*8.0/self.rate)
+            yield self.env.timeout(msg.size * 8.0 / self.rate)
             self.out.put(msg)
 
     def put(self, pkt):
@@ -691,7 +731,7 @@ class VirtualClockServer(object):
         # Update of auxVC for the flow. We assume that vticks is the desired bit time
         # i.e., the inverse of the desired bits per second data rate.
         # Hence we then multiply this value by the size of the packet in bits.
-        self.auxVCs[flow_id] = max(now, self.auxVCs[flow_id]) + self.vticks[flow_id]*pkt.size*8.0
+        self.auxVCs[flow_id] = max(now, self.auxVCs[flow_id]) + self.vticks[flow_id] * pkt.size * 8.0
         # Lots of work to do here to implement the queueing discipline
         return self.store.put((self.auxVCs[flow_id], pkt))
 
@@ -711,6 +751,7 @@ class WFQServer(object):
             list of the phis parameters (for each possible packet flow_id). We assume a simple assignment of
             flow id to phis, i.e., flow_id = 0 corresponds to phis[0], etc...
     """
+
     def __init__(self, env, rate, phis, debug=False):
         self.env = env
         self.rate = rate
@@ -743,7 +784,7 @@ class WFQServer(object):
                 for i in range(len(self.F_times)):
                     self.F_times[i] = 0.0
             # Send message
-            yield self.env.timeout(msg.size*8.0/self.rate)
+            yield self.env.timeout(msg.size * 8.0 / self.rate)
             self.out.put(msg)
 
     def put(self, pkt):
@@ -755,8 +796,8 @@ class WFQServer(object):
         phi_sum = 0.0
         for i in self.active_set:
             phi_sum += self.phis[i]
-        self.vtime += (now-self.last_update)/phi_sum
-        self.F_times[flow_id] = max(self.F_times[flow_id], self.vtime) + pkt.size*8.0/self.phis[flow_id]
+        self.vtime += (now - self.last_update) / phi_sum
+        self.F_times[flow_id] = max(self.F_times[flow_id], self.vtime) + pkt.size * 8.0 / self.phis[flow_id]
         # print "Flow id = {}, packet_id = {}, F_time = {}".format(flow_id, pkt.id, self.F_times[flow_id])
         self.last_update = now
         return self.store.put((self.F_times[flow_id], pkt))
