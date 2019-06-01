@@ -10,6 +10,9 @@ import functools
 import simpy
 import sys
 import time
+import matplotlib.pyplot as plt
+import numpy as np
+
 from SimComponents import PacketGenerator, PacketSink, PortMonitor, SwitchPort, RandomBrancher, RoundRobin, \
     WeightedRoundRobin, LeastConnection, RandomBalancer
 
@@ -17,16 +20,31 @@ from SimComponents import PacketGenerator, PacketSink, PortMonitor, SwitchPort, 
 def PrintResults(switchports,endpoints):
 
     iplr_list = []
+    avg_occupancy = []
 
     for switchport in switchports:
-        iplr_list.append(switchport.packets_drop/switchport.packets_rec)
+        iplr_list.append((switchport.packets_drop/switchport.packets_rec)*100)
 
     for endpoint in endpoints:
+
+        avg_occupancy.append(float(sum(endpoint.sizes) / sum(endpoint.arrivals)))
+
         print()
-        print("average system occupancy on endpoint {} : {}".format(endpoints.index(endpoint), float(sum(endpoint.sizes) / sum(endpoint.arrivals))))
+        print("average system occupancy on endpoint {} : {}".format(endpoints.index(endpoint), avg_occupancy[endpoints.index(endpoint)]))
         print("packets recieved by endpoint {} = {}".format(endpoints.index(endpoint), endpoint.packets_rec))
-        print("IPLR on endpoint {} = {}".format(endpoints.index(endpoint), iplr_list[endpoints.index(endpoint)]))
+        print("IPLR on endpoint {} = {} %".format(endpoints.index(endpoint), iplr_list[endpoints.index(endpoint)]))
         print()
+
+    x = [i for i, _ in enumerate(endpoints)]
+
+    plt.bar(x,avg_occupancy,align='center', alpha=0.5,color = 'green',label = 'Total Load')
+    plt.bar(x,iplr_list,align='center',alpha=0.5, color = 'red',label='IPLR')
+    plt.xticks(x,x)
+    plt.legend(loc=4)
+    plt.ylabel('Load / %')
+    plt.title('Total load distribution and pachet loss rate')
+    plt.show()
+
 
 
 if __name__ == '__main__':
