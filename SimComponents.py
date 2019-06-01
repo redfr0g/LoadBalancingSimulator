@@ -40,6 +40,8 @@ class Packet(object):
         self.src = src
         self.dst = dst
         self.flow_id = flow_id
+        self.arrival_time = 0
+        self.lost = None
 
     def __repr__(self):
         return "id: {}, src: {}, time: {}, size: {}". \
@@ -113,26 +115,26 @@ class PacketSink(object):
 
     """
 
-    def __init__(self, env, weight=0, speed = 1000, service_list_size=100, rec_arrivals=False, absolute_arrivals=False, rec_waits=True, debug=False,
+    def __init__(self, env, weight=0, pkt_size=1000, rec_arrivals=False, absolute_arrivals=False, rec_waits=True, debug=False,
                  selector=None, rec_sizes=False, rec_flows=False):
+
         self.store = simpy.Store(env)
         self.env = env
         self.weight = weight
-        self.speed = speed
-        self.service_list_size = service_list_size
+        self.pkt_size = pkt_size
         self.rec_sizes = rec_sizes
         self.rec_waits = rec_waits
         self.rec_arrivals = rec_arrivals
         self.rec_flows = rec_flows
         self.absolute_arrivals = absolute_arrivals
         self.waits = []
-        self.service_list = []                                                                                          # TODO Use in service list check
         self.arrivals = []
         self.sizes = []
         self.flows = []
         self.debug = debug
         self.packets_rec = 0
         self.bytes_rec = 0
+        self.packets_lost = 0
         self.selector = selector
         self.last_arrival = 0.0
 
@@ -142,33 +144,26 @@ class PacketSink(object):
 
         if not self.selector or self.selector(pkt):
             now = self.env.now
+            pkt.arrival_time = self.env.now
 
-            if len(self.service_list) < self.service_list_size:
-                self.service_list.append(pkt)
-                                                                                                                        #TODO Add checking serivice time and removing packet from service queue
-                                                                                                                        #TODO Add calculating service time and total server occupancy
-                if self.rec_sizes:
-                    self.sizes.append(pkt.size)
-                if self.rec_flows:
-                    if pkt.flow_id not in self.flows:
-                        self.flows.append(pkt.flow_id)
-                if self.rec_waits:
-                    self.waits.append(self.env.now - pkt.time)
-                if self.rec_arrivals:
-                    if self.absolute_arrivals:
-                        self.arrivals.append(now)
-                    else:
-                        self.arrivals.append(now - self.last_arrival)
-                    self.last_arrival = now
-                self.packets_rec += 1
-                self.bytes_rec += pkt.size
+            if self.rec_sizes:
+                self.sizes.append(pkt.size)
+            if self.rec_flows:
+                if pkt.flow_id not in self.flows:
+                    self.flows.append(pkt.flow_id)
+            if self.rec_waits:
+                self.waits.append(self.env.now - pkt.time)
+            if self.rec_arrivals:
+                if self.absolute_arrivals:
+                    self.arrivals.append(now)
+                else:
+                    self.arrivals.append(now - self.last_arrival)
+                self.last_arrival = now
+            self.packets_rec += 1
+            self.bytes_rec += pkt.size
 
-                if self.debug:
-
-                    print(pkt)
-            else:
-                pass
-
+            if self.debug:
+                print(pkt)
 
 
 class SwitchPort(object):
@@ -416,7 +411,7 @@ class LeastConnection(object):
             loads = {}
             for endpoint in self.endpoints:
                 try:
-                    loads[self.endpoints.index(endpoint)] = sum(endpoint.sizes) / sum(endpoint.arrivals)
+                    loads[self.endpoints.index(endpoint)] = sum(endpoint.sizes)
                 except ZeroDivisionError:
                     # in case no packets were sent before set load to 0
                     loads[self.endpoints.index(endpoint)] = 0
