@@ -19,7 +19,7 @@ def PrintResults(endpoints):
         print("average system occupancy on endpoint {} : {}".format(endpoints.index(endpoint), float(
             sum(endpoint.sizes) / sum(endpoint.arrivals))))
         print("packets recieved by endpoint {} = {}".format(endpoints.index(endpoint), endpoint.packets_rec))
-        # print(endpoint.sizes)
+        #print(endpoint.waits)
         # print("packets lost {}".format(pg1.packets_sent - ps1.packets_rec - ps2.packets_rec - ps3.packets_rec - ps4.packets_rec))
 
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     endpoints_weigths = []  # weights added randomly from 1-10
 
     for i in range(0, endpoints_max):
-        endpoints_list.append(PacketSink(env, random.randint(1, 10), debug=False, rec_arrivals=True, rec_sizes=True))
+        endpoints_list.append(PacketSink(env, weight=random.randint(1, 10), speed=1000, debug=False, rec_arrivals=True, rec_sizes=True))       #creating endpoints (servers) with processing speed and weight
                                                                                             # TODO Add to packetsink service rate and service list and packets loss  (Aga)
                                                                                             # TODO Calculate business from servicing time and total time
         endpoints_weigths.append(endpoints_list[i].weight)
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     lb4 = RandomBalancer(env, endpoints_max)
                                                                                             # TODO Add least load algorithm which checks and updates service lists in all servers when gets its packets
 
-    balancer = lb3
+    balancer = lb2
 
     # Wire packet generators and sinks together
     pg1.out = balancer
