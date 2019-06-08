@@ -129,6 +129,7 @@ if __name__ == '__main__':
         switchports_list[i].out = endpoints_list[i]
 
     # Run it
+    print("Starting simulation...")
 
     start = time.time()
     env.run(until=pkt_limit)
