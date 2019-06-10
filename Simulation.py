@@ -21,6 +21,8 @@ def PrintResults(switchports,endpoints):
 
     iplr_list = []
     avg_occupancy = []
+    pkt_sum = 0
+    mean_load = 0
 
     for switchport in switchports:
         iplr_list.append((switchport.packets_drop/switchport.packets_rec)*100)
@@ -29,11 +31,20 @@ def PrintResults(switchports,endpoints):
 
         avg_occupancy.append(float(sum(endpoint.sizes) / sum(endpoint.arrivals)))
 
+        pkt_sum+=endpoint.packets_rec
+        mean_IPLR = sum(iplr_list)/output_count
+
         print()
         print("average system occupancy on endpoint {} : {}".format(endpoints.index(endpoint), avg_occupancy[endpoints.index(endpoint)]))
         print("packets recieved by endpoint {} = {}".format(endpoints.index(endpoint), endpoint.packets_rec))
         print("IPLR on endpoint {} = {} %".format(endpoints.index(endpoint), iplr_list[endpoints.index(endpoint)]))
         print()
+
+    if algorithm is 1:
+        mean_load = sum(avg_occupancy)/len(avg_occupancy)
+        print ("Mean load for all servers: {}".format(mean_load))
+
+    print("Estimated load per server: {}".format(pkt_sum*pkt_size/queue_rate/8/output_count))
 
     x = [i for i, _ in enumerate(endpoints)]
 
@@ -134,8 +145,12 @@ if __name__ == '__main__':
     start = time.time()
     env.run(until=pkt_limit)
     end = time.time()
+    sim_time = end - start
 
-    print("Simulation finished! Simulation time {} seconds.".format(end - start))
+    print("Simulation finished! Simulation time {} seconds.".format(sim_time))
     print ()
+
     #print results
     PrintResults(switchports_list,endpoints_list)
+
+

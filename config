@@ -1,15 +1,15 @@
 #CONFIGURATION FILE FOR LOAD BALANCING SIMULATOR (lines starting with # will be ommitted)
 #
 #Packet size
-1500
+1000
 #Packet lmit
 10000
 #Lambda
-2.0
+1.0
 #Output count
-20
+10
 #Queue rate
-1000
+1300
 #Queue limit
 10000
 #Algorithm (1 - Weighted Round Robin, 2 - Round Robin, 3 - Least Connection, 4 - Random Balancer)
